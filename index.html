@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Control de Peso</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js for interactive charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom scrollbar for clean look */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 h-full flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Header -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 px-4 py-3 shadow-sm flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <div class="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                <i class="fa-solid fa-scale-balanced text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base leading-tight tracking-tight">PesoPro</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400" id="header-subtitle">Tu registro diario</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="switchTab('settings')" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition" aria-label="Ajustes">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+            <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition" aria-label="Modo oscuro">
+                <i class="fa-solid fa-moon dark:hidden"></i>
+                <i class="fa-solid fa-sun hidden dark:block text-amber-400"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container (Mobile Viewport Optimized) -->
+    <main class="flex-1 overflow-y-auto pb-24 max-w-lg w-full mx-auto p-4">
+
+        <!-- TAB 1: REGISTRO -->
+        <section id="tab-register" class="tab-content space-y-6">
+            <!-- Card de Bienvenida / Resumen Rápido -->
+            <div class="bg-gradient-to-br from-brand-600 to-emerald-700 rounded-2xl p-5 text-white shadow-lg shadow-brand-600/20 relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 opacity-10 text-9xl">
+                    <i class="fa-solid fa-weight-scale"></i>
+                </div>
+                <div class="relative z-10">
+                    <p class="text-xs uppercase tracking-wider text-brand-100 font-medium">Último registro</p>
+                    <div class="flex items-baseline space-x-2 mt-1">
+                        <span id="last-weight-display" class="text-4xl font-extrabold tracking-tight">--</span>
+                        <span class="text-lg font-medium text-brand-100">kg</span>
+                    </div>
+                    <p id="last-date-display" class="text-xs text-brand-100 mt-1 opacity-90">No hay registros aún</p>
+                </div>
+            </div>
+
+            <!-- Formulario de Registro con caracteres grandes -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-5">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-lg text-slate-800 dark:text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-plus text-brand-500"></i>
+                        <span>Registrar Peso</span>
+                    </h2>
+                    <!-- Selector de Fecha editable -->
+                    <div class="relative">
+                        <input type="date" id="entry-date" class="bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 px-3 py-2 rounded-xl border-0 focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                </div>
+
+                <!-- Input grande de Peso -->
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Peso (kg)</label>
+                    <div class="relative flex items-center">
+                        <input type="number" id="entry-weight" step="0.1" inputmode="decimal" placeholder="00.0" 
+                            class="w-full text-center text-4xl font-bold py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-2xl focus:border-brand-500 focus:outline-none text-slate-800 dark:text-white transition shadow-inner">
+                        <span class="absolute right-5 text-xl font-bold text-slate-400">kg</span>
+                    </div>
+                </div>
+
+                <!-- Nota opcional -->
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Nota (opcional)</label>
+                    <input type="text" id="entry-note" placeholder="Ej: Ayunas, después de entrenar..." 
+                        class="w-full text-sm px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-brand-500 focus:outline-none text-slate-800 dark:text-white transition">
+                </div>
+
+                <!-- Botón de Guardar Grande -->
+                <button onclick="saveWeightEntry()" class="w-full py-4 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white font-bold text-base rounded-2xl shadow-lg shadow-brand-500/30 transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-floppy-disk text-lg"></i>
+                    <span>Guardar Registro</span>
+                </button>
+            </div>
+
+            <!-- Mini resumen métricas rápidas -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <span class="text-xs text-slate-400 block font-medium">Media de la Semana</span>
+                    <div class="flex items-baseline space-x-1 mt-1">
+                        <span id="quick-weekly-avg" class="text-xl font-bold">--</span>
+                        <span class="text-xs text-slate-500">kg</span>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <span id="quick-official-label" class="text-xs text-slate-400 block font-medium">Media Oficial (Sáb)</span>
+                    <div class="flex items-baseline space-x-1 mt-1">
+                        <span id="quick-official-avg" class="text-xl font-bold text-brand-600 dark:text-brand-400">--</span>
+                        <span class="text-xs text-slate-500">kg</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: ESTADÍSTICAS Y GRÁFICOS -->
+        <section id="tab-stats" class="tab-content hidden space-y-6">
+            <!-- Filtros de Tiempo -->
+            <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex items-center space-x-2 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+                    <button onclick="setChartFilter('current_month')" id="filter-current_month" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-brand-500 text-white shadow-sm">Mes actual</button>
+                    <button onclick="setChartFilter('all')" id="filter-all" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Todo</button>
+                </div>
+                <div class="flex items-center space-x-2 w-full sm:w-auto">
+                    <label for="months-select" class="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Últimos meses:</label>
+                    <select id="months-select" onchange="onMonthsDropdownChange(this.value)" class="w-full sm:w-auto text-xs font-medium px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border-0 focus:ring-2 focus:ring-brand-500 outline-none">
+                        <option value="" disabled selected>Seleccionar...</option>
+                        <option value="1">1 mes</option>
+                        <option value="2">2 meses</option>
+                        <option value="3">3 meses</option>
+                        <option value="4">4 meses</option>
+                        <option value="5">5 meses</option>
+                        <option value="6">6 meses</option>
+                        <option value="7">7 meses</option>
+                        <option value="8">8 meses</option>
+                        <option value="9">9 meses</option>
+                        <option value="10">10 meses</option>
+                        <option value="11">11 meses</option>
+                        <option value="12">12 meses</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tarjeta Gráfico Principal -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-sm text-slate-800 dark:text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-line text-brand-500"></i>
+                        <span>Evolución de Peso</span>
+                    </h3>
+                    <span id="chart-date-range-label" class="text-xs font-medium text-slate-400">Filtrando periodo</span>
+                </div>
+                <div class="relative w-full h-64">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Panel de Medias y Estadísticas Clave -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-2">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Media de la Semana Actual</span>
+                    <div class="flex items-baseline space-x-2">
+                        <span id="stat-weekly-avg" class="text-3xl font-extrabold">--</span>
+                        <span class="text-sm font-medium text-slate-500">kg</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Promedio de los registros de esta semana en curso.</p>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-2">
+                    <span id="stat-official-title" class="text-xs font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wider block">Media Oficial (Sábado)</span>
+                    <div class="flex items-baseline space-x-2">
+                        <span id="stat-official-avg" class="text-3xl font-extrabold text-brand-600 dark:text-brand-400">--</span>
+                        <span class="text-sm font-medium text-slate-500">kg</span>
+                    </div>
+                    <p id="stat-official-desc" class="text-xs text-slate-500 dark:text-slate-400">Media de los 6 días anteriores al día oficial (Domingo a Viernes).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: HISTORIAL COMPLETO -->
+        <section id="tab-history" class="tab-content hidden space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="font-bold text-lg text-slate-800 dark:text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-clock-rotate-left text-brand-500"></i>
+                    <span>Historial de Registros</span>
+                </h2>
+                <span id="total-records-count" class="text-xs font-medium bg-slate-200 dark:bg-slate-700 px-2.5 py-1 rounded-full text-slate-600 dark:text-slate-300">0 registros</span>
+            </div>
+
+            <!-- Lista de Registros -->
+            <div id="history-list" class="space-y-3">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </section>
+
+        <!-- TAB 4: AJUSTES Y CONFIGURACIÓN -->
+        <section id="tab-settings" class="tab-content hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-5">
+                <h2 class="font-bold text-lg text-slate-800 dark:text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-sliders text-brand-500"></i>
+                    <span>Configuración Oficial</span>
+                </h2>
+
+                <!-- Día Oficial de Pesaje -->
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300 block">Día Oficial de Pesaje</label>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        La media oficial calcula el promedio de los <strong>6 días anteriores</strong> al día seleccionado (por ejemplo, si eliges Sábado, toma los datos de domingo a viernes).
+                    </p>
+                    <select id="config-weigh-day" onchange="saveSettings()" class="w-full text-sm px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-brand-500 focus:outline-none text-slate-800 dark:text-white transition">
+                        <option value="1">Lunes</option>
+                        <option value="2">Martes</option>
+                        <option value="3">Miércoles</option>
+                        <option value="4">Jueves</option>
+                        <option value="5">Viernes</option>
+                        <option value="6" selected>Sábado</option>
+                        <option value="0">Domingo</option>
+                    </select>
+                </div>
+
+                <!-- Exportar / Importar Datos -->
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
+                    <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">Copia de Seguridad de Datos</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="exportData()" class="py-3 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-download"></i>
+                            <span>Exportar JSON</span>
+                        </button>
+                        <label class="py-3 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition flex items-center justify-center space-x-2 cursor-pointer">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>Importar JSON</span>
+                            <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Zona de Peligro -->
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
+                    <h3 class="text-sm font-semibold text-rose-500">Zona de Peligro</h3>
+                    <button onclick="clearAllDataConfirm()" class="w-full py-3 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>Borrar Todos los Datos</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Créditos / Info App -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 text-center space-y-2">
+                <h4 class="font-bold text-sm text-slate-800 dark:text-white">PesoPro v1.0</h4>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Aplicación web móvil optimizada para un control de peso preciso y análisis de tendencias.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Attribution -->
+    <footer class="py-3 text-center text-[11px] text-slate-400 dark:text-slate-500 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 px-4">
+        This app has been created by Eduardo Ruiz. Twitter: <a href="https://twitter.com/ejruizgarcia" target="_blank" class="text-brand-600 dark:text-brand-400 hover:underline">@ejruizgarcia</a>
+    </footer>
+
+    <!-- Bottom Navigation Bar (Mobile App Style) -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 py-2 px-6 flex justify-around items-center z-40 max-w-lg mx-auto shadow-lg">
+        <button onclick="switchTab('register')" id="nav-register" class="nav-btn flex flex-col items-center text-brand-500 transition">
+            <i class="fa-solid fa-circle-plus text-lg"></i>
+            <span class="text-[10px] font-semibold mt-1">Registrar</span>
+        </button>
+        <button onclick="switchTab('stats')" id="nav-stats" class="nav-btn flex flex-col items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition">
+            <i class="fa-solid fa-chart-line text-lg"></i>
+            <span class="text-[10px] font-medium mt-1">Estadísticas</span>
+        </button>
+        <button onclick="switchTab('history')" id="nav-history" class="nav-btn flex flex-col items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition">
+            <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+            <span class="text-[10px] font-medium mt-1">Historial</span>
+        </button>
+        <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition">
+            <i class="fa-solid fa-sliders text-lg"></i>
+            <span class="text-[10px] font-medium mt-1">Ajustes</span>
+        </button>
+    </nav>
+
+    <!-- Custom Modal for Notifications / Edits -->
+    <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div id="modal-content" class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700 space-y-4">
+            <h3 id="modal-title" class="font-bold text-lg text-slate-800 dark:text-white">Título</h3>
+            <div id="modal-body" class="text-sm text-slate-600 dark:text-slate-300">
+                Contenido del modal
+            </div>
+            <div id="modal-footer" class="flex space-x-3 pt-2">
+                <!-- Botones dinámicos -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // --- Estado Global y Almacenamiento ---
+        let weightRecords = JSON.parse(localStorage.getItem('weight_records')) || [];
+        let appSettings = JSON.parse(localStorage.getItem('weight_settings')) || { weighDay: 6 }; // 6 = Sábado por defecto
+        let currentFilter = 'current_month';
+        let weightChartInstance = null;
+
+        const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+        // Inicialización al cargar la ventana
+        window.onload = function() {
+            // Configurar fecha por defecto en input de registro (hoy)
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('entry-date').value = todayStr;
+            
+            // Cargar configuración en el selector
+            document.getElementById('config-weigh-day').value = appSettings.weighDay;
+
+            // Verificar modo oscuro guardado
+            if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+
+            // Actualizar vista completa
+            refreshAppData();
+        };
+
+        // --- Navegación por Pestañas ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-brand-500');
+                btn.classList.add('text-slate-400', 'dark:text-slate-500');
+                const span = btn.querySelector('span');
+                if(span) span.classList.remove('font-semibold');
+                if(span) span.classList.add('font-medium');
+            });
+
+            const activeBtn = document.getElementById('nav-' + tabId);
+            if(activeBtn) {
+                activeBtn.classList.remove('text-slate-400', 'dark:text-slate-500');
+                activeBtn.classList.add('text-brand-500');
+                const span = activeBtn.querySelector('span');
+                if(span) {
+                    span.classList.remove('font-medium');
+                    span.classList.add('font-semibold');
+                }
+            }
+
+            // Subtítulo del Header según pestaña
+            const subtitles = {
+                'register': 'Tu registro diario',
+                'stats': 'Evolución y medias',
+                'history': 'Todos tus pesajes',
+                'settings': 'Preferencias y ajustes'
+            };
+            document.getElementById('header-subtitle').innerText = subtitles[tabId] || '';
+
+            // Si cambiamos a estadísticas, renderizar gráfico
+            if(tabId === 'stats') {
+                renderCharts();
+            }
+        }
+
+        // --- Tema Oscuro / Claro ---
+        function toggleDarkMode() {
+            if(document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            if(weightChartInstance) {
+                renderCharts(); // Re-renderizar gráfico para adaptar colores
+            }
+        }
+
+        // --- Guardar Configuración ---
+        function saveSettings() {
+            const dayVal = parseInt(document.getElementById('config-weigh-day').value);
+            appSettings.weighDay = dayVal;
+            localStorage.setItem('weight_settings', JSON.stringify(appSettings));
+            showNotification('Ajustes guardados', 'Se ha actualizado el día oficial de pesaje.');
+            refreshAppData();
+        }
+
+        // --- Registrar Nuevo Peso ---
+        function saveWeightEntry() {
+            const weightInput = document.getElementById('entry-weight');
+            const dateInput = document.getElementById('entry-date');
+            const noteInput = document.getElementById('entry-note');
+
+            const weightVal = parseFloat(weightInput.value);
+            const dateVal = dateInput.value;
+            const noteVal = noteInput.value.trim();
+
+            if(isNaN(weightVal) || weightVal <= 0) {
+                showNotification('Error de validación', 'Por favor, introduce un peso válido.');
+                return;
+            }
+
+            if(!dateVal) {
+                showNotification('Error de validación', 'Por favor, selecciona una fecha.');
+                return;
+            }
+
+            // Comprobar si ya existe un registro en esa misma fecha para actualizarlo o agregarlo
+            const existingIndex = weightRecords.findIndex(r => r.date === dateVal);
+            if(existingIndex >= 0) {
+                weightRecords[existingIndex].weight = weightVal;
+                weightRecords[existingIndex].note = noteVal;
+            } else {
+                weightRecords.push({
+                    id: Date.now().toString(),
+                    date: dateVal,
+                    weight: weightVal,
+                    note: noteVal
+                });
+            }
+
+            // Ordenar registros por fecha ascendente
+            weightRecords.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Guardar en localStorage
+            localStorage.setItem('weight_records', JSON.stringify(weightRecords));
+
+            // Limpiar input de peso y nota
+            weightInput.value = '';
+            noteInput.value = '';
+
+            showNotification('¡Guardado!', 'El registro de peso se ha guardado correctamente.');
+            refreshAppData();
+        }
+
+        // --- Refrescar Datos en Interfaz ---
+        function refreshAppData() {
+            // 1. Último registro
+            if(weightRecords.length > 0) {
+                const last = weightRecords[weightRecords.length - 1];
+                document.getElementById('last-weight-display').innerText = last.weight.toFixed(1);
+                
+                const formattedDate = new Date(last.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                document.getElementById('last-date-display').innerText = formattedDate;
+            } else {
+                document.getElementById('last-weight-display').innerText = '--';
+                document.getElementById('last-date-display').innerText = 'No hay registros aún';
+            }
+
+            // 2. Calcular y mostrar medias rápidas y estadísticas
+            updateMetricsAndAvgs();
+
+            // 3. Renderizar Historial
+            renderHistoryList();
+        }
+
+        // --- Cálculo de Medias (Semanal y Oficial) ---
+        function updateMetricsAndAvgs() {
+            if(weightRecords.length === 0) {
+                document.getElementById('quick-weekly-avg').innerText = '--';
+                document.getElementById('quick-official-avg').innerText = '--';
+                document.getElementById('stat-weekly-avg').innerText = '--';
+                document.getElementById('stat-official-avg').innerText = '--';
+                return;
+            }
+
+            // Media semanal actual (registros de los últimos 7 días)
+            const now = new Date();
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(now.getDate() - 7);
+
+            const weeklyRecords = weightRecords.filter(r => new Date(r.date) >= oneWeekAgo);
+            const weeklyAvg = weeklyRecords.length > 0 
+                ? (weeklyRecords.reduce((sum, r) => sum + r.weight, 0) / weeklyRecords.length).toFixed(1)
+                : '--';
+
+            document.getElementById('quick-weekly-avg').innerText = weeklyAvg;
+            document.getElementById('stat-weekly-avg').innerText = weeklyAvg;
+
+            // Media Oficial según el día configurado
+            const weighDayOfWeek = appSettings.weighDay; // 0=Dom, 1=Lun... 6=Sáb
+            const officialDayName = dayNames[weighDayOfWeek];
+            
+            document.getElementById('quick-official-label').innerText = `Media Oficial (${officialDayName.slice(0,3)})`;
+            document.getElementById('stat-official-title').innerText = `Media Oficial (${officialDayName})`;
+            document.getElementById('stat-official-desc').innerText = `Media de los 6 días anteriores al ${officialDayName.toLowerCase()} (desde 6 días atrás hasta el propio día).`;
+
+            const officialAvg = calculateOfficialAverage(weighDayOfWeek);
+            const officialAvgStr = officialAvg !== null ? officialAvg.toFixed(1) : '--';
+
+            document.getElementById('quick-official-avg').innerText = officialAvgStr;
+            document.getElementById('stat-official-avg').innerText = officialAvgStr;
+        }
+
+        function calculateOfficialAverage(targetDayOfWeek) {
+            // Buscamos el último día oficial que haya ocurrido o esté en curso
+            // La regla pide: media de todos los valores de los 6 días anteriores + el día oficial (7 días en total terminando en el día oficial)
+            if(weightRecords.length === 0) return null;
+
+            // Encontramos la fecha más reciente que coincida con el día oficial o la anterior
+            const today = new Date();
+            let targetDate = new Date(today);
+            let currentDay = targetDate.getDay();
+            
+            let diff = currentDay - targetDayOfWeek;
+            if (diff < 0) diff += 7;
+            targetDate.setDate(targetDate.getDate() - diff);
+            targetDate.setHours(0,0,0,0);
+
+            // Periodo de 7 días que termina en ese día oficial: desde (targetDate - 6 días) hasta targetDate
+            const startDate = new Date(targetDate);
+            startDate.setDate(startDate.getDate() - 6);
+            startDate.setHours(0,0,0,0);
+
+            const periodRecords = weightRecords.filter(r => {
+                const rDate = new Date(r.date + 'T00:00:00');
+                return rDate >= startDate && rDate <= targetDate;
+            });
+
+            if(periodRecords.length === 0) return null;
+            const sum = periodRecords.reduce((acc, curr) => acc + curr.weight, 0);
+            return sum / periodRecords.length;
+        }
+
+        // --- Renderizar Historial ---
+        function renderHistoryList() {
+            const container = document.getElementById('history-list');
+            const countBadge = document.getElementById('total-records-count');
+            countBadge.innerText = `${weightRecords.length} registros`;
+
+            if(weightRecords.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center space-y-3 border border-slate-100 dark:border-slate-700 shadow-sm">
+                        <div class="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                            <i class="fa-solid fa-folder-open text-xl"></i>
+                        </div>
+                        <p class="text-sm font-medium text-slate-500">No hay registros de peso guardados todavía.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Mostrar en orden descendente (más reciente primero)
+            const sortedDesc = [...weightRecords].reverse();
+            let html = '';
+
+            sortedDesc.forEach((record, index) => {
+                const prevRecord = sortedDesc[index + 1];
+                let diffHtml = '';
+                if(prevRecord) {
+                    const diff = record.weight - prevRecord.weight;
+                    if(diff < 0) {
+                        diffHtml = `<span class="text-xs font-semibold text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md"><i class="fa-solid fa-arrow-down"></i> ${Math.abs(diff).toFixed(1)} kg</span>`;
+                    } else if(diff > 0) {
+                        diffHtml = `<span class="text-xs font-semibold text-rose-500 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-md"><i class="fa-solid fa-arrow-up"></i> ${diff.toFixed(1)} kg</span>`;
+                    } else {
+                        diffHtml = `<span class="text-xs font-semibold text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">= 0.0 kg</span>`;
+                    }
+                } else {
+                    diffHtml = `<span class="text-xs text-slate-400">Inicio</span>`;
+                }
+
+                const formattedDate = new Date(record.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+
+                html += `
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-between">
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-lg text-slate-800 dark:text-white">${record.weight.toFixed(1)} kg</span>
+                                ${diffHtml}
+                            </div>
+                            <p class="text-xs text-slate-400 font-medium">${formattedDate}</p>
+                            ${record.note ? `<p class="text-xs text-slate-500 dark:text-slate-400 italic">"${record.note}"</p>` : ''}
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="openEditModal('${record.id}')" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 flex items-center justify-center transition" aria-label="Editar">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="deleteRecord('${record.id}')" class="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 flex items-center justify-center transition" aria-label="Eliminar">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // --- Gráficos Interactivos (Chart.js) ---
+        function setChartFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = "filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700";
+            });
+            const activeBtn = document.getElementById('filter-' + filter);
+            if(activeBtn) {
+                activeBtn.className = "filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-brand-500 text-white shadow-sm";
+            }
+            // Reset dropdown when clicking main filters
+            document.getElementById('months-select').value = "";
+            renderCharts();
+        }
+
+        function onMonthsDropdownChange(val) {
+            if(!val) return;
+            currentFilter = val + 'm';
+            // Remove active style from main buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = "filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700";
+            });
+            renderCharts();
+        }
+
+        function renderCharts() {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            
+            // Filtrar datos según el periodo seleccionado
+            const filteredData = filterRecordsByTime(weightRecords, currentFilter);
+
+            const labels = filteredData.map(r => {
+                const d = new Date(r.date + 'T00:00:00');
+                return d.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+            });
+            const dataValues = filteredData.map(r => r.weight);
+
+            // Actualizar etiqueta de rango
+            let rangeLabelText = 'Todo el histórico';
+            if(currentFilter === 'current_month') {
+                rangeLabelText = 'Mes Actual';
+            } else if(currentFilter === 'all') {
+                rangeLabelText = 'Todo el Histórico';
+            } else if(currentFilter.endsWith('m')) {
+                const monthsNum = currentFilter.replace('m', '');
+                rangeLabelText = `Últimos ${monthsNum} ${monthsNum === '1' ? 'mes' : 'meses'}`;
+            }
+            document.getElementById('chart-date-range-label').innerText = rangeLabelText;
+
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? '#334155' : '#f1f5f9';
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+
+            if(weightChartInstance) {
+                weightChartInstance.destroy();
+            }
+
+            weightChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Peso (kg)',
+                        data: dataValues,
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#22c55e',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0.25,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: isDark ? '#1e293b' : '#0f172a',
+                            titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+                            bodyFont: { family: 'Inter', size: 13 },
+                            padding: 10,
+                            cornerRadius: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.parsed.y.toFixed(1)} kg`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor, drawBorder: false },
+                            ticks: { font: { family: 'Inter', size: 10 }, color: textColor, maxTicksLimit: 6 }
+                        },
+                        y: {
+                            grid: { color: gridColor, drawBorder: false },
+                            ticks: { font: { family: 'Inter', size: 10 }, color: textColor }
+                        }
+                    }
+                }
+            });
+        }
+
+        function filterRecordsByTime(records, filter) {
+            if(records.length === 0) return [];
+            const now = new Date();
+            
+            if(filter === 'current_month') {
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                return records.filter(r => {
+                    const d = new Date(r.date + 'T00:00:00');
+                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                });
+            }
+
+            if(filter === 'all') return records;
+
+            let monthsBack = parseInt(filter.replace('m', '')) || 1;
+            const limitDate = new Date();
+            limitDate.setMonth(limitDate.getMonth() - monthsBack);
+
+            return records.filter(r => new Date(r.date + 'T00:00:00') >= limitDate);
+        }
+
+        // --- Editar y Borrar Registros ---
+        let editingRecordId = null;
+
+        function openEditModal(id) {
+            const record = weightRecords.find(r => r.id === id);
+            if(!record) return;
+            editingRecordId = id;
+
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalFooter = document.getElementById('modal-footer');
+
+            modalTitle.innerText = "Editar Registro";
+            modalBody.innerHTML = `
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Fecha</label>
+                        <input type="date" id="edit-modal-date" value="${record.date}" class="w-full text-sm px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Peso (kg)</label>
+                        <input type="number" id="edit-modal-weight" step="0.1" value="${record.weight}" class="w-full text-lg font-bold px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Nota</label>
+                        <input type="text" id="edit-modal-note" value="${record.note || ''}" class="w-full text-sm px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800 dark:text-white">
+                    </div>
+                </div>
+            `;
+            modalFooter.innerHTML = `
+                <button onclick="closeModal()" class="flex-1 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition">Cancelar</button>
+                <button onclick="saveEditedRecord()" class="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold rounded-xl transition shadow-md shadow-brand-500/20">Guardar</button>
+            `;
+
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function saveEditedRecord() {
+            const newDate = document.getElementById('edit-modal-date').value;
+            const newWeight = parseFloat(document.getElementById('edit-modal-weight').value);
+            const newNote = document.getElementById('edit-modal-note').value.trim();
+
+            if(isNaN(newWeight) || newWeight <= 0 || !newDate) {
+                showNotification('Error', 'Introduce datos válidos.');
+                return;
+            }
+
+            const record = weightRecords.find(r => r.id === editingRecordId);
+            if(record) {
+                record.date = newDate;
+                record.weight = newWeight;
+                record.note = newNote;
+
+                weightRecords.sort((a, b) => new Date(a.date) - new Date(b.date));
+                localStorage.setItem('weight_records', JSON.stringify(weightRecords));
+                refreshAppData();
+                closeModal();
+                showNotification('Actualizado', 'El registro se ha modificado con éxito.');
+            }
+        }
+
+        function deleteRecord(id) {
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalFooter = document.getElementById('modal-footer');
+
+            modalTitle.innerText = "Eliminar Registro";
+            modalBody.innerHTML = `<p class="text-sm">¿Estás seguro de que deseas eliminar este registro de peso?</p>`;
+            modalFooter.innerHTML = `
+                <button onclick="closeModal()" class="flex-1 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl">Cancelar</button>
+                <button onclick="confirmDeleteRecord('${id}')" class="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold rounded-xl shadow-md shadow-rose-500/20">Eliminar</button>
+            `;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function confirmDeleteRecord(id) {
+            weightRecords = weightRecords.filter(r => r.id !== id);
+            localStorage.setItem('weight_records', JSON.stringify(weightRecords));
+            refreshAppData();
+            closeModal();
+            showNotification('Eliminado', 'El registro ha sido eliminado.');
+        }
+
+        function clearAllDataConfirm() {
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalFooter = document.getElementById('modal-footer');
+
+            modalTitle.innerText = "⚠️ Borrar Todo";
+            modalBody.innerHTML = `<p class="text-sm">¿Estás completamente seguro? Esta acción borrará todos tus registros de peso y no se puede deshacer.</p>`;
+            modalFooter.innerHTML = `
+                <button onclick="closeModal()" class="flex-1 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl">Cancelar</button>
+                <button onclick="confirmClearAll()" class="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold rounded-xl shadow-md shadow-rose-500/20">Sí, borrar todo</button>
+            `;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function confirmClearAll() {
+            weightRecords = [];
+            localStorage.removeItem('weight_records');
+            refreshAppData();
+            closeModal();
+            showNotification('Datos borrados', 'Se han eliminado todos los registros.');
+        }
+
+        // --- Exportar e Importar JSON ---
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ records: weightRecords, settings: appSettings }, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `pesopro_backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showNotification('Exportado', 'Copia de seguridad descargada correctamente.');
+        }
+
+        function importData(event) {
+            const fileReader = new FileReader();
+            if(event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = function(e) {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        if(parsed.records && Array.isArray(parsed.records)) {
+                            weightRecords = parsed.records;
+                            localStorage.setItem('weight_records', JSON.stringify(weightRecords));
+                            if(parsed.settings) {
+                                appSettings = parsed.settings;
+                                localStorage.setItem('weight_settings', JSON.stringify(appSettings));
+                                document.getElementById('config-weigh-day').value = appSettings.weighDay;
+                            }
+                            refreshAppData();
+                            showNotification('Importado', 'Datos restaurados con éxito.');
+                        } else {
+                            showNotification('Error', 'El formato del archivo no es válido.');
+                        }
+                    } catch(err) {
+                        showNotification('Error', 'No se pudo leer el archivo JSON.');
+                    }
+                };
+            }
+        }
+
+        // --- Modal Simple de Notificación / Alerta ---
+        function showNotification(title, message) {
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalFooter = document.getElementById('modal-footer');
+
+            modalTitle.innerText = title;
+            modalBody.innerHTML = `<p class="text-sm">${message}</p>`;
+            modalFooter.innerHTML = `<button onclick="closeModal()" class="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold rounded-xl transition shadow-md shadow-brand-500/20">Aceptar</button>`;
+
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
